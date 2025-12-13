@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 315">
+  <rect width="600" height="315" fill="#222" />
+  <text x="300" y="100" font-family="Arial" font-size="30" fill="white" text-anchor="middle">Physical AI &amp; Humanoid Robotics</text>
+  <text x="300" y="150" font-family="Arial" font-size="20" fill="#aaa" text-anchor="middle">A Comprehensive 13-Week Course on Embodied Intelligence</text>
+  <g transform="translate(250, 180)">
+    <circle cx="0" cy="0" r="40" fill="#444" />
+    <text x="0" y="5" font-family="Arial" font-size="20" fill="white" text-anchor="middle">AI</text>
+    <circle cx="-25" cy="-15" r="5" fill="#61dafb" />
+    <circle cx="25" cy="-15" r="5" fill="#61dafb" />
+    <path d="M -25 5 Q 0 20 25 5" stroke="#61dafb" stroke-width="2" fill="none" />
+  </g>
+</svg>
