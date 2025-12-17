@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Optional
-from openai import OpenAI
+import google.generativeai as genai
 import os
 
 from src.models.chat import ChatRequest, ChatResponse, Message, MessageRole, SearchResult
@@ -17,12 +17,13 @@ class ChatService:
         self.vector_store = VectorStoreService()
         self.embedding_service = CohereEmbeddingService()
 
-        # Initialize OpenAI client
-        if settings.OPENAI_API_KEY:
-            self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        # Initialize Gemini client
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            self.gemini_model = genai.GenerativeModel('gemini-pro')  # or 'gemini-1.5-pro' for newer model
         else:
             # For now, we'll handle this gracefully - in a real app you'd want to ensure this is set
-            self.openai_client = None
+            self.gemini_model = None
 
     async def process_chat(self, message: str, session_id: str,
                           selected_text: Optional[str] = None,
@@ -64,7 +65,7 @@ class ChatService:
             for msg in history:
                 conversation_context += f"\n{msg.role.value.capitalize()}: {msg.content}"
 
-        # Generate response using OpenAI
+        # Generate response using Gemini
         if selected_text:
             # Special prompt for selection-based RAG to emphasize using the selected text
             full_prompt = f"""
@@ -102,20 +103,15 @@ class ChatService:
             Please provide a helpful response based on the context and cite sources when possible.
             """
 
-        if self.openai_client:
+        if self.gemini_model:
             try:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",  # You can change this to gpt-4 if preferred
-                    messages=[{"role": "user", "content": full_prompt}],
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                ai_response = response.choices[0].message.content
+                response = await self.gemini_model.generate_content_async(full_prompt)
+                ai_response = response.text
             except Exception as e:
                 ai_response = f"Sorry, I encountered an error processing your request: {str(e)}"
         else:
-            # Fallback response if OpenAI key is not configured
-            ai_response = "OpenAI API key not configured. In a real implementation, this would generate a response based on the context provided."
+            # Fallback response if Gemini key is not configured
+            ai_response = "Gemini API key not configured. In a real implementation, this would generate a response based on the context provided."
 
         # Save the assistant's response to the database
         await self.db_service.add_message(session_id, MessageRole.ASSISTANT.value, ai_response)

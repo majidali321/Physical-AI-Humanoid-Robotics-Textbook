@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Chatbot Interface</title>
+    <title>RAG Chatbot Interface - Deployed Version</title>
     <style>
         * {
             margin: 0;
@@ -201,6 +201,15 @@
             padding: 2px 4px;
             border-radius: 3px;
         }
+
+        .api-config {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #c4b5fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -208,6 +217,17 @@
         <div class="header">
             <h1>📚 Digital Book RAG Chatbot</h1>
             <p>Selection-Based RAG: Highlight text and ask questions about it</p>
+        </div>
+
+        <div class="note">
+            <strong>Important:</strong> This interface requires a running API server.
+            Make sure your FastAPI backend is accessible at the configured API URL.
+        </div>
+
+        <div class="api-config">
+            <label for="apiUrl">API Server URL:</label>
+            <input type="text" id="apiUrl" value="http://127.0.0.1:8000/api/v1" style="width: 100%; padding: 8px; margin-top: 5px; background: rgba(15, 23, 42, 0.8); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px;">
+            <p style="margin-top: 10px; font-size: 0.9em;">Update this URL when your API is deployed to a different location.</p>
         </div>
 
         <div class="highlight-controls">
@@ -239,7 +259,7 @@
             <div class="chat-container">
                 <div class="chat-history" id="chatHistory">
                     <div class="message assistant-message">
-                        Hello! I'm your RAG Chatbot. You can highlight text in the book content and ask me questions about it, or ask general questions about the content.
+                        Hello! I'm your RAG Chatbot. You can highlight text in the book content and ask me questions about it, or ask general questions about the content. Make sure your API server is running!
                     </div>
                 </div>
                 <div class="input-area">
@@ -251,8 +271,8 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+        // API Configuration - this can be updated by the user
+        let API_BASE_URL = document.getElementById('apiUrl').value;
 
         // DOM Elements
         const bookText = document.getElementById('bookText');
@@ -262,9 +282,18 @@
         const explainSelectionBtn = document.getElementById('explainSelection');
         const clearSelectionBtn = document.getElementById('clearSelection');
         const selectedTextDisplay = document.getElementById('selectedTextDisplay');
+        const apiUrlInput = document.getElementById('apiUrl');
 
         let selectedText = '';
         let sessionId = generateSessionId();
+
+        // Update API URL when input changes
+        apiUrlInput.addEventListener('change', function() {
+            API_BASE_URL = this.value.replace('/api/v1', '');
+            if (!API_BASE_URL.endsWith('/api/v1') && !API_BASE_URL.endsWith('/api/v1/')) {
+                API_BASE_URL += '/api/v1';
+            }
+        });
 
         // Generate a random session ID
         function generateSessionId() {
@@ -331,6 +360,7 @@
             try {
                 // Show typing indicator
                 const typingIndicator = addMessageToChat('assistant', '...');
+                typingIndicator.classList.add('typing-indicator');
 
                 // Prepare the request
                 const requestBody = {
@@ -367,14 +397,16 @@
                         explainSelectionBtn.disabled = true;
                     }
                 } else {
-                    throw new Error(data.detail || 'API request failed');
+                    throw new Error(data.detail || `API request failed with status ${response.status}`);
                 }
             } catch (error) {
                 console.error('Error:', error);
                 // Remove typing indicator and add error message
                 const typingIndicator = document.querySelector('.typing-indicator');
                 if (typingIndicator) typingIndicator.remove();
-                addMessageToChat('assistant', `Error: ${error.message}. Make sure your API server is running at http://127.0.0.1:8000`);
+
+                const errorMessage = `Error: ${error.message}. Please ensure your API server is running and accessible at: ${API_BASE_URL.replace('/api/v1', '')}`;
+                addMessageToChat('assistant', errorMessage);
             }
         }
 
@@ -384,10 +416,6 @@
             messageDiv.className = `message ${role}-message`;
             messageDiv.textContent = content;
 
-            if (role === 'assistant' && content === '...') {
-                messageDiv.classList.add('typing-indicator');
-            }
-
             chatHistory.appendChild(messageDiv);
             chatHistory.scrollTop = chatHistory.scrollHeight;
             return messageDiv;
@@ -395,7 +423,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('RAG Chatbot Interface loaded. Make sure your API server is running at http://127.0.0.1:8000');
+            console.log('RAG Chatbot Interface loaded. Make sure your API server is running.');
         });
     </script>
 </body>

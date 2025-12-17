@@ -4,6 +4,13 @@ from pydantic import BaseModel
 from typing import Optional, List
 import uuid
 from datetime import datetime
+import google.generativeai as genai
+import os
+
+# Configure Gemini API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyA4YfeJ0r51eFklgKrXbcVKRPBY1L82hMc")
+genai.configure(api_key=GEMINI_API_KEY)
+gemini_model = genai.GenerativeModel('gemini-pro')
 
 # Simplified models
 class MessageRole:
@@ -37,7 +44,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="RAG Chatbot API - Simplified",
-    description="Simplified version for testing",
+    description="Simplified version for testing with Gemini API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -47,7 +54,7 @@ chat_sessions = {}
 
 @app.get("/")
 def read_root():
-    return {"message": "Simplified RAG Chatbot API is running!"}
+    return {"message": "Simplified RAG Chatbot API with Gemini is running!"}
 
 @app.get("/health")
 def health_check():
@@ -56,29 +63,51 @@ def health_check():
 @app.post("/api/v1/chat", response_model=ChatResponse)
 async def chat_endpoint(chat_request: ChatRequest):
     """
-    Simplified chat endpoint for testing
+    Chat endpoint using Gemini API
     """
     try:
         # Generate a session ID if not provided
         session_id = chat_request.session_id or str(uuid.uuid4())
 
-        # For testing purposes, return a simple response
-        # In the full implementation, this would use RAG
+        # Build the prompt based on whether there's selected text
         if chat_request.selected_text:
-            response = f"I received your selected text: '{chat_request.selected_text}'. Based on this, I can answer your question about: '{chat_request.message}'"
+            # Special prompt for selection-based RAG
+            prompt = f"""
+            You are a helpful assistant for a digital book. Answer the user's question based STRICTLY on the PRIMARY CONTEXT provided below.
+            If the PRIMARY CONTEXT doesn't contain relevant information, say so.
+            Do not fabricate information.
+
+            PRIMARY CONTEXT (Selected Text):
+            {chat_request.selected_text}
+
+            User's Question: {chat_request.message}
+
+            Please provide a helpful response based strictly on the PRIMARY CONTEXT.
+            """
         else:
-            response = f"You asked: '{chat_request.message}'. This is a simplified response for testing purposes."
+            # Standard prompt
+            prompt = f"""
+            You are a helpful assistant. The user asked: {chat_request.message}
+            Provide a helpful response.
+            """
+
+        # Generate response using Gemini
+        try:
+            response = await gemini_model.generate_content_async(prompt)
+            ai_response = response.text
+        except Exception as e:
+            ai_response = f"Sorry, I encountered an error: {str(e)}. This is a fallback response."
 
         # Store session (simplified)
         chat_sessions[session_id] = chat_request.history + [
             Message(role=MessageRole.USER, content=chat_request.message),
-            Message(role=MessageRole.ASSISTANT, content=response)
+            Message(role=MessageRole.ASSISTANT, content=ai_response)
         ]
 
         return ChatResponse(
-            response=response,
+            response=ai_response,
             session_id=session_id,
-            sources=["test-source"]
+            sources=["gemini-api"]
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")

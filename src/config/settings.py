@@ -17,8 +17,8 @@ class Settings:
     # PostgreSQL Configuration
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_5CXpMAVgFtO1@ep-dark-haze-abairq5s-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 
-    # OpenAI Configuration
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    # Gemini Configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "AIzaSyA4YfeJ0r51eFklgKrXbcVKRPBY1L82hMc")
 
     # Application Configuration
     APP_NAME: str = os.getenv("APP_NAME", "RAG Chatbot")
