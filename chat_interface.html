@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            color: #38bdf8;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .book-content {
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 500px;
+            overflow-y: auto;
+        }
+
+        .book-content h3 {
+            color: #38bdf8;
+            margin-bottom: 15px;
+        }
+
+        .book-text {
+            cursor: text;
+        }
+
+        .book-text p {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .book-text p:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .selected-text {
+            background: rgba(250, 204, 21, 0.3) !important;
+            border-radius: 4px;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: rgba(56, 189, 248, 0.2);
+            margin-left: auto;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .assistant-message {
+            background: rgba(34, 197, 94, 0.2);
+            margin-right: auto;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.8);
+            color: white;
+        }
+
+        .input-area input:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        .input-area button {
+            padding: 12px 20px;
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .input-area button:hover {
+            background: #0ea5e9;
+        }
+
+        .highlight-controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .highlight-controls button {
+            padding: 10px 20px;
+            background: #f59e0b;
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .highlight-controls button:hover {
+            background: #d97706;
+        }
+
+        .highlight-controls button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .selected-highlight {
+            background: rgba(250, 204, 21, 0.3);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Digital Book RAG Chatbot</h1>
+            <p>Selection-Based RAG: Highlight text and ask questions about it</p>
+        </div>
+
+        <div class="highlight-controls">
+            <button id="explainSelection" disabled>🎯 Explain Selection</button>
+            <button id="clearSelection">🗑️ Clear</button>
+            <div id="selectedTextDisplay" style="margin-top: 10px; font-style: italic; color: #fbbf24;"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="book-content">
+                <h3>📖 Sample Book Content</h3>
+                <div class="book-text" id="bookText">
+                    <p>Artificial Intelligence (AI) is a branch of computer science that aims to create software or machines that exhibit human-like intelligence. This can include learning from experience, understanding natural language, solving problems, and recognizing patterns.</p>
+
+                    <p>Machine Learning is a subset of AI that enables computers to learn and make decisions from data without being explicitly programmed. It uses algorithms to identify patterns in data and make predictions or decisions based on those patterns.</p>
+
+                    <p>Deep Learning is a specialized form of machine learning that uses neural networks with multiple layers. These deep neural networks can automatically discover representations needed for feature detection or classification from raw data.</p>
+
+                    <p>Retrieval-Augmented Generation (RAG) combines the power of large language models with external knowledge sources. It retrieves relevant information from a knowledge base and uses it to generate more accurate and contextually relevant responses.</p>
+
+                    <p>Vector databases like Qdrant store embeddings that represent the semantic meaning of text. These embeddings allow for efficient similarity search, finding content that is conceptually related rather than just keyword-matching.</p>
+
+                    <p>Cohere provides state-of-the-art natural language processing models including embedding models that convert text into high-dimensional vectors for semantic search and analysis.</p>
+
+                    <p>FastAPI is a modern, fast (high-performance) web framework for building APIs with Python 3.7+ based on standard Python type hints.</p>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-history" id="chatHistory">
+                    <div class="message assistant-message">
+                        Hello! I'm your RAG Chatbot. You can highlight text in the book content and ask me questions about it, or ask general questions about the content.
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="userInput" placeholder="Ask a question about the book content..." />
+                    <button id="sendButton">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+
+        // DOM Elements
+        const bookText = document.getElementById('bookText');
+        const chatHistory = document.getElementById('chatHistory');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const explainSelectionBtn = document.getElementById('explainSelection');
+        const clearSelectionBtn = document.getElementById('clearSelection');
+        const selectedTextDisplay = document.getElementById('selectedTextDisplay');
+
+        let selectedText = '';
+        let sessionId = generateSessionId();
+
+        // Generate a random session ID
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Handle text selection
+        bookText.addEventListener('mouseup', function() {
+            const selection = window.getSelection();
+            if (selection.toString().trim()) {
+                selectedText = selection.toString().trim();
+                selectedTextDisplay.innerHTML = `Selected: <span class="selected-highlight">${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}</span>`;
+                explainSelectionBtn.disabled = false;
+            } else {
+                selectedText = '';
+                selectedTextDisplay.innerHTML = '';
+                explainSelectionBtn.disabled = true;
+            }
+        });
+
+        // Clear selection
+        clearSelectionBtn.addEventListener('click', function() {
+            window.getSelection().removeAllRanges();
+            selectedText = '';
+            selectedTextDisplay.innerHTML = '';
+            explainSelectionBtn.disabled = true;
+        });
+
+        // Explain selection button
+        explainSelectionBtn.addEventListener('click', function() {
+            if (selectedText) {
+                const question = userInput.value.trim() || 'Explain this concept';
+                sendMessage(question, selectedText);
+            }
+        });
+
+        // Send button
+        sendButton.addEventListener('click', function() {
+            const message = userInput.value.trim();
+            if (message) {
+                sendMessage(message);
+            }
+        });
+
+        // Enter key in input
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const message = userInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            }
+        });
+
+        // Send message to API
+        async function sendMessage(message, selectedTextParam = null) {
+            const messageText = message;
+            const selected = selectedTextParam || selectedText;
+
+            // Add user message to chat
+            addMessageToChat('user', messageText);
+            userInput.value = '';
+
+            try {
+                // Show typing indicator
+                const typingIndicator = addMessageToChat('assistant', '...');
+
+                // Prepare the request
+                const requestBody = {
+                    message: messageText,
+                    session_id: sessionId
+                };
+
+                // Include selected text if available
+                if (selected) {
+                    requestBody.selected_text = selected;
+                }
+
+                // Call the API
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Remove typing indicator and add actual response
+                    typingIndicator.remove();
+                    addMessageToChat('assistant', data.response);
+
+                    // Clear selection after successful request
+                    if (selected) {
+                        window.getSelection().removeAllRanges();
+                        selectedText = '';
+                        selectedTextDisplay.innerHTML = '';
+                        explainSelectionBtn.disabled = true;
+                    }
+                } else {
+                    throw new Error(data.detail || 'API request failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Remove typing indicator and add error message
+                const typingIndicator = document.querySelector('.typing-indicator');
+                if (typingIndicator) typingIndicator.remove();
+                addMessageToChat('assistant', `Error: ${error.message}. Make sure your API server is running at http://127.0.0.1:8000`);
+            }
+        }
+
+        // Add message to chat history
+        function addMessageToChat(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            messageDiv.textContent = content;
+
+            if (role === 'assistant' && content === '...') {
+                messageDiv.classList.add('typing-indicator');
+            }
+
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            return messageDiv;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('RAG Chatbot Interface loaded. Make sure your API server is running at http://127.0.0.1:8000');
+        });
+    </script>
+</body>
+</html>
